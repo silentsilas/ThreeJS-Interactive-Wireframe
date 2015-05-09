@@ -15,7 +15,7 @@
 	</head>
 	<body>
 		<script src="js/three.js"></script>
-		<script src="js/THREEx.KeyboardState.js"></script>
+		
 		<script src="js/dat.gui.min.js"></script>
 		<div id="canvas-container"></div>
 
@@ -23,7 +23,7 @@
 			/*
 			 * Same as production except with keyboard controls to change the animation. Go to animate() section for keyboard layout
 			 */
-window.onload = function() {
+		window.onload = function() {
 			var camera, scene, renderer;
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
@@ -71,7 +71,7 @@ window.onload = function() {
 			var y_positions = [];
 			var z_positions = [];
 
-			var keyboard = new THREEx.KeyboardState();
+			
 			init();
 			animate();
 
@@ -146,15 +146,16 @@ window.onload = function() {
 				raycaster = new THREE.Raycaster();
 				mouse = new THREE.Vector2();
 
-				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.addEventListener( 'mousewheel', onDocumentMouseWheel, false);
+				
 
 				// NOTE: This must run after the #canvas-container div is loaded, otherwise explosions.
 				// This can be achieved by starting init() & animate() after window.onload
 				// Or by placing this script after the #canvas-container div
 				container = document.getElementById("canvas-container");
+				container.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				container.addEventListener( 'touchstart', onDocumentTouchStart, false );
+				container.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				container.addEventListener( 'mousewheel', onDocumentMouseWheel, false);
 				container.appendChild( renderer.domElement );
 				window.addEventListener( 'resize', onWindowResize, false );
 			}
@@ -162,11 +163,6 @@ window.onload = function() {
 				var evt=window.event || e;
 				var delta=evt.detail? evt.detail*(-120) : evt.wheelDelta; //delta returns +120 when wheel is scrolled up, -120 when scrolled down
 			    camera.position.x=(delta<=-120)? camera.position.x-50 : camera.position.x+50; // zoom in or out, depending on whether wheel is scrolled up or down
-				if (evt.preventDefault) //disable default wheel action of scrolling page
-					evt.preventDefault();
-				else
-					return false;
-
 			}
 			function onDocumentTouchStart( event ) {
 
