@@ -10,19 +10,13 @@
 				margin: 0px;
 				overflow: hidden;
 			}
-
 		</style>
 	</head>
 	<body>
 		<script src="js/three.js"></script>
-		
 		<script src="js/dat.gui.min.js"></script>
 		<div id="canvas-container"></div>
-
 		<script>
-			/*
-			 * Same as production except with keyboard controls to change the animation. Go to animate() section for keyboard layout
-			 */
 		window.onload = function() {
 			var camera, scene, renderer;
 			var windowHalfX = window.innerWidth / 2;
@@ -40,41 +34,159 @@
 
 			// Variables that affect the sphere animation
 			var SphereParams = new function() {
-				this.count_increment = 0.0155;
+				this.x_frequency = 0.5;
+				this.y_frequency = 0.5;
+				this.z_frequency = 0.5;
+				this.x_phase = 0.1;
+				this.y_phase = 0.1;
+				this.z_phase = 0.1;
 				this.x_amplitude = 0.775;
-				this.y_amplitude = 0
-				this.z_amplitude = 0;
-				this.frequency = 0.5;
-				this.whichOrder = "y";
+				this.y_amplitude = 0.1;
+				this.z_amplitude = 0.1;
+				this.x_center = 0.1;
+				this.y_center = 0.1;
+				this.z_center = 0.1;
+				this.which_order = "y";
 				this.x_rotation = 0.0003;
 				this.y_rotation = 0.00002;
-				this.z_rotation = 0;
-				this.box_xrotate_speed = 0.001;
+				this.z_rotation = 0.00002;
 			};
-
+			var BackgroundParams = new function() {
+				this.r_frequency = 1.666;
+				this.g_frequency = 2.666;
+				this.b_frequency = 3.666;
+				this.r_phase = 0.01;
+				this.g_phase = 2*Math.PI/3;
+				this.b_phase = 4*Math.PI/3;
+			    this.r_amplitude = 127;
+			    this.g_amplitude = 127;
+			    this.b_amplitude = 127;
+			    this.r_center = 128;
+				this.g_center = 128;
+				this.b_center = 128;
+			}
+			var MiscParams = new function() {
+				this.count_increment = 0.0155;
+				this.box_xrotate_speed = 0.001;
+			}
 			var gui = new dat.GUI();
-			gui.add(SphereParams, 'count_increment',0,5);
-			gui.add(SphereParams, 'x_amplitude', -5, 5);
-			gui.add(SphereParams, 'y_amplitude', -5, 5);
-			gui.add(SphereParams, 'z_amplitude', -5, 5);
-			gui.add(SphereParams, 'frequency', -5, 5);
-			gui.add(SphereParams, 'whichOrder',  [ 'x', 'y', 'z' ]);
-			gui.add(SphereParams, 'x_rotation', -1, 1);
-			gui.add(SphereParams, 'y_rotation', -1, 1);
-			gui.add(SphereParams, 'z_rotation', -1, 1);
-			gui.add(SphereParams, 'box_xrotate_speed', -1, 1);
+			var sphereFolder = gui.addFolder('Sphere');
+			// Frequency & Phase repeat after 2π radians (aka 360°)
+			sphereFolder.add(SphereParams, 'x_frequency', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'y_frequency', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'z_frequency', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'x_phase', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'y_phase', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'z_phase', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'x_amplitude', -5, 5);
+			sphereFolder.add(SphereParams, 'y_amplitude', -5, 5);
+			sphereFolder.add(SphereParams, 'z_amplitude', -5, 5);
+			sphereFolder.add(SphereParams, 'x_center', -50, 50);
+			sphereFolder.add(SphereParams, 'y_center', -50, 50);
+			sphereFolder.add(SphereParams, 'z_center', -50, 50);
+			sphereFolder.add(SphereParams, 'which_order',  [ 'x', 'y', 'z' ]);
+			sphereFolder.add(SphereParams, 'x_rotation', -.5, .5);
+			sphereFolder.add(SphereParams, 'y_rotation', -.5, .5);
+			sphereFolder.add(SphereParams, 'z_rotation', -.5, .5);
 
-			// properties of the sphere we can manipulate
+			var backgroundFolder = gui.addFolder('Background');
+			backgroundFolder.add(BackgroundParams, 'r_frequency', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'g_frequency', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'b_frequency', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'r_phase', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'g_phase', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'b_phase', 0, 6.28318530718);
+
+			// TODO: Surely there must be a way to modularize these controllers? Perhaps also the folders.
+			var r_amp_controller = backgroundFolder.add(BackgroundParams, 'r_amplitude', 0, 127);
+			r_amp_controller.onChange(function(value) {
+				if (BackgroundParams.r_center + value > 255) {
+					BackgroundParams.r_center = BackgroundParams.r_center - ( (BackgroundParams.r_center + value) - 255);
+					updateDisplay(gui);
+				} else if (BackgroundParams.r_center - value < 0) {
+					BackgroundParams.r_center = BackgroundParams.r_center + ( Math.abs(BackgroundParams.r_center - value) );
+					updateDisplay(gui);
+				}
+			});
+			var g_amp_controller = backgroundFolder.add(BackgroundParams, 'g_amplitude', 0, 127);
+			g_amp_controller.onChange(function(value) {
+				if (BackgroundParams.g_center + value > 255) {
+					BackgroundParams.g_center = BackgroundParams.g_center - ( (BackgroundParams.g_center + value) - 255);
+					updateDisplay(gui);
+				} else if (BackgroundParams.g_center - value < 0) {
+					BackgroundParams.g_center = BackgroundParams.g_center + ( Math.abs(BackgroundParams.g_center - value) );
+					updateDisplay(gui);
+				}
+			});
+			var b_amp_controller = backgroundFolder.add(BackgroundParams, 'b_amplitude', 0, 127);
+			b_amp_controller.onChange(function(value) {
+				if (BackgroundParams.b_center + value > 255) {
+					BackgroundParams.b_center = BackgroundParams.b_center - ( (BackgroundParams.b_center + value) - 255);
+					updateDisplay(gui);
+				} else if (BackgroundParams.b_center - value < 0) {
+					BackgroundParams.b_center = BackgroundParams.b_center + ( Math.abs(BackgroundParams.b_center - value) );
+					updateDisplay(gui);
+				}
+			});
+
+			var r_center_controller = backgroundFolder.add(BackgroundParams, 'r_center', 0, 255);
+			r_center_controller.onChange(function(value) { // amp 40, center 15
+				if (BackgroundParams.r_amplitude + value > 255) {
+					BackgroundParams.r_amplitude = BackgroundParams.r_amplitude - ( (BackgroundParams.r_amplitude + value) - 255);
+					updateDisplay(gui);
+				} else if (value - BackgroundParams.r_amplitude < 0) {
+					BackgroundParams.r_amplitude = BackgroundParams.r_amplitude - Math.abs(value - BackgroundParams.r_amplitude);
+					updateDisplay(gui);
+				}
+			});
+			var g_center_controller = backgroundFolder.add(BackgroundParams, 'g_center', 0, 255);
+			g_center_controller.onChange(function(value) {
+				if (BackgroundParams.g_amplitude + value > 255) {
+					BackgroundParams.g_amplitude = BackgroundParams.g_amplitude - ( (BackgroundParams.g_amplitude + value) - 255);
+					updateDisplay(gui);
+				} else if (value - BackgroundParams.g_amplitude < 0) {
+					BackgroundParams.g_amplitude = BackgroundParams.g_amplitude - Math.abs(value - BackgroundParams.g_amplitude);
+					updateDisplay(gui);
+				}
+			});
+			var b_center_controller = backgroundFolder.add(BackgroundParams, 'b_center', 0, 255);
+			b_center_controller.onChange(function(value) {
+				if (BackgroundParams.b_amplitude + value > 255) {
+					BackgroundParams.b_amplitude = BackgroundParams.b_amplitude - ( (BackgroundParams.b_amplitude + value) - 255);
+					updateDisplay(gui);
+				} else if (value - BackgroundParams.b_amplitude < 0) {
+					BackgroundParams.b_amplitude = BackgroundParams.b_amplitude - Math.abs(value - BackgroundParams.b_amplitude);
+					updateDisplay(gui);
+				}
+			});
+
+			var miscFolder = gui.addFolder('Miscellaneous');
+			miscFolder.add(MiscParams, 'count_increment',0,1.5);
+			miscFolder.add(MiscParams, 'box_xrotate_speed', -1, 1);
+			sphereFolder.open();
+
+			// global properties of the sphere we can manipulate
 			var sphere_geometry;
 			var sphere_object;
 			var x_positions = [];
 			var y_positions = [];
 			var z_positions = [];
 
-			
+
 			init();
 			animate();
 
+			/*
+			 * Dat.GUI's listen function is buggy, so have to manually update the GUI after updating a value remotely
+			 */
+			function updateDisplay(gui) {
+				for (var i in gui.__controllers) {
+					gui.__controllers[i].updateDisplay();
+				}
+				for (var f in gui.__folders) {
+					updateDisplay(gui.__folders[f]);
+				}
+			}
 			function sphereCallback(obj) {
 				// If you need to change the color of the sphere's wireframe, use this:
 				// obj.material.color.setHex(0xd0d0d0);
@@ -98,7 +210,6 @@
 				sphere_geometry._origVertices = origVertices.slice(0);
 				scene.add(obj);
 				objects.push(obj);
-				console.log(obj);
 			}
 			function init() {
 
@@ -142,15 +253,9 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
-
 				raycaster = new THREE.Raycaster();
 				mouse = new THREE.Vector2();
 
-				
-
-				// NOTE: This must run after the #canvas-container div is loaded, otherwise explosions.
-				// This can be achieved by starting init() & animate() after window.onload
-				// Or by placing this script after the #canvas-container div
 				container = document.getElementById("canvas-container");
 				container.addEventListener( 'mousedown', onDocumentMouseDown, false );
 				container.addEventListener( 'touchstart', onDocumentTouchStart, false );
@@ -165,20 +270,18 @@
 			    camera.position.x=(delta<=-120)? camera.position.x-50 : camera.position.x+50; // zoom in or out, depending on whether wheel is scrolled up or down
 			}
 			function onDocumentTouchStart( event ) {
-
-				event.preventDefault();
-
-				event.clientX = event.touches[0].clientX;
-				event.clientY = event.touches[0].clientY;
-				onDocumentMouseDown( event );
-
+				var evt=window.event || e;
+				//evt.preventDefault();
+				evt.clientX = evt.touches[0].clientX;
+				evt.clientY = evt.touches[0].clientY;
+				onDocumentMouseDown( evt );
 			}
 			function onDocumentMouseMove( event ) {
+				var evt=window.event || e;
 				//event.preventDefault
-				mouse.x = ( event.clientX / renderer.domElement.width ) * 2 - 1;
-				mouse.y = - ( event.clientY / renderer.domElement.height ) * 2 + 1;
+				mouse.x = ( evt.clientX / renderer.domElement.width ) * 2 - 1;
+				mouse.y = - ( evt.clientY / renderer.domElement.height ) * 2 + 1;
 				raycaster.setFromCamera( mouse, camera );
-
 				var intersects = raycaster.intersectObjects( objects );
 				if ( intersects.length > 0 ) {
 					if ( intersects[ 0 ].object.name != "animated-sphere")
@@ -188,26 +291,12 @@
 				} else {
 					container.style.cursor = "auto";
 				}
-
-			}
-			function getContrastYIQ(hexcolor){
-				hexcolor.replace('#','');
-				var red = parseInt(hexcolor.substr(0,2),16);
-				var green = parseInt(hexcolor.substr(2,2),16);
-				var blue = parseInt(hexcolor.substr(4,2),16);
-				var yiq = ((red*299)+(green*587)+(blue*114))/1000;
-				return (yiq >= 128) ? '0x000000' : '0xd0d0d0';
-			}
-			function getRandom(max, min) {
-				return Math.random() * (max - min) + min;
 			}
 			function onDocumentMouseDown( event ) {
-
+				var evt=window.event || e;
 				//event.preventDefault();
-
-				mouse.x = ( event.clientX / renderer.domElement.width ) * 2 - 1;
-				mouse.y = - ( event.clientY / renderer.domElement.height ) * 2 + 1;
-
+				mouse.x = ( evt.clientX / renderer.domElement.width ) * 2 - 1;
+				mouse.y = - ( evt.clientY / renderer.domElement.height ) * 2 + 1;
 				raycaster.setFromCamera( mouse, camera );
 				var intersects = raycaster.intersectObjects( objects );
 				if ( intersects.length > 0 ) {
@@ -216,10 +305,30 @@
 						intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
 					}
 					if (intersects[ 0 ].object.name == "box")
-						SphereParams.box_xrotate_speed = getRandom(0.1,-0.1);
+						MiscParams.box_xrotate_speed = getRandom(0.1,-0.1);
 				}
-
 			}
+			/*
+			 * Determines whether the current background color is bright/dark.
+			 * A bright color turns the sphere wireframe black. Dark turns it white.
+			 */
+			function getContrastYIQ(hexcolor){
+				hexcolor.replace('#','');
+				var red = parseInt(hexcolor.substr(0,2),16);
+				var green = parseInt(hexcolor.substr(2,2),16);
+				var blue = parseInt(hexcolor.substr(4,2),16);
+				var yiq = ((red*299)+(green*587)+(blue*114))/1000;
+				return (yiq >= 128) ? '0x000000' : '0xd0d0d0';
+			}
+			/*
+			 * Helper function for getting random numbers within a specified range.
+			 */
+			function getRandom(max, min) {
+				return Math.random() * (max - min) + min;
+			}
+			/*
+			 * Helper functions for converting RGB <--> Hex, etc
+			 */
 			function RGB2Color(r,g,b)
 			{
 				return 'rgb(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(b) + ')';
@@ -274,10 +383,8 @@
 			function onWindowResize() {
 				windowHalfX = window.innerWidth / 2;
 				windowHalfY = window.innerHeight / 2;
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
 				renderer.setSize( window.innerWidth, window.innerHeight );
 			}
 
@@ -285,18 +392,9 @@
 			 * Main loop to handle animation
 			 */
 			function animate() {
-				var rgb_frequency = 0.1;
-				var r_frequency = 1.666;
-				var g_frequency = 2.666;
-				var b_frequency = 3.666;
-				var r_phase = 0;
-				var g_phase = 2*Math.PI/3;
-				var b_phase = 4*Math.PI/3;
-				var rgb_center = 128;
-			    var rgb_amplitude = 127;
-				r = Math.sin( ( rgb_frequency*(-count) + r_phase ) / 1 ) * rgb_amplitude + rgb_center;
-				g = Math.sin( ( rgb_frequency*(-count) + g_phase ) / 1 ) * rgb_amplitude + rgb_center;
-				b = Math.sin( ( rgb_frequency*(-count) + b_phase ) / 1 ) * rgb_amplitude + rgb_center;
+				r = Math.sin( BackgroundParams.r_frequency*(-count) + BackgroundParams.r_phase ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
+				g = Math.sin( BackgroundParams.g_frequency*(-count) + BackgroundParams.g_phase ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
+				b = Math.sin( BackgroundParams.b_frequency*(-count) + BackgroundParams.b_phase ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
 				var background_hex = RGB2Color(r,g,b);
 
 				document.body.style.backgroundColor=background_hex;
@@ -316,28 +414,28 @@
 					for (var j = 0; j < sphere_geometry.vertices.length; j++) {
 
 						// Decide which axis it should go through in numeric order
-						if (SphereParams.whichOrder == "x") {
+						if (SphereParams.which_order == "x") {
 							var origin = sphere_geometry._origVertices[x_positions[j][1]];
 							var newPosition = sphere_geometry.vertices[x_positions[j][1]];
-						} else if (SphereParams.whichOrder == "y") {
+						} else if (SphereParams.which_order == "y") {
 							var origin = sphere_geometry._origVertices[y_positions[j][1]];
 							var newPosition = sphere_geometry.vertices[y_positions[j][1]];
-						} else if (SphereParams.whichOrder == "z") {
+						} else if (SphereParams.which_order == "z") {
 							var origin = sphere_geometry._origVertices[z_positions[j][1]];
 							var newPosition = sphere_geometry.vertices[z_positions[j][1]];
 						}
-						newPosition.y = origin.y+ (Math.sin( ( -j+count  ) * SphereParams.frequency ) * SphereParams.y_amplitude );
-						newPosition.x = origin.x+ (Math.sin( ( -j+count  ) * SphereParams.frequency ) * SphereParams.x_amplitude );
-						newPosition.z = origin.z+ (Math.sin( ( -j+count  ) * SphereParams.frequency ) * SphereParams.z_amplitude );
+						newPosition.y = origin.y+ (Math.sin( ( j+count  ) * SphereParams.x_frequency + SphereParams.x_phase ) * SphereParams.y_amplitude + SphereParams.x_center );
+						newPosition.x = origin.x+ (Math.sin( ( j+count  ) * SphereParams.y_frequency + SphereParams.y_phase ) * SphereParams.x_amplitude + SphereParams.y_center );
+						newPosition.z = origin.z+ (Math.sin( ( j+count  ) * SphereParams.z_frequency + SphereParams.z_phase ) * SphereParams.z_amplitude + SphereParams.z_center );
 					}
 					// Set the dirtyVertices flag so that the vertices will be updated in the renderer
 					sphere_geometry.verticesNeedUpdate = true;
 					sphere_geometry.__dirtyVertices = true;
 				}
 
-				box.rotation.x += SphereParams.box_xrotate_speed;
-				box.rotation.z += Math.sin( ( 2.4*count ) / 10 ) * 0.002;
-				box.rotation.y += Math.sin( (1.4*count)/5)*0.008;
+				box.rotation.x += MiscParams.box_xrotate_speed;
+				box.rotation.z += Math.sin( (2.4*count) / 10 ) * 0.002;
+				box.rotation.y += Math.sin( (1.4*count) / 5 ) * 0.008;
 				octahedron.rotation.x += 0.01;
 
 				// Render and repeat.
@@ -346,7 +444,7 @@
 			}
 			function render() {
 				renderer.render( scene, camera );
-				count += SphereParams.count_increment;
+				count += MiscParams.count_increment;
 			}
 		};
 
