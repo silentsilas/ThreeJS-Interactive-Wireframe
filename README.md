@@ -26,6 +26,7 @@ _sin(frequency &lowast; x &lowast; vertex_index) &lowast; amplitude + center_.
   * Give each the same frequency. Offset their phases by 120°. It'll loop through the rainbow.
   * Same frequency and same phase will have the sine waves line up to produce a greyscale.
   * What other patterns can you find? ***FIND OUT NEXT TIME ON WIREFRAME-BALL Z!!!!***
+  * This [site](http://krazydad.com/tutorials/makecolors.php) explains what's happening here.
 
 ## Sliders
 
