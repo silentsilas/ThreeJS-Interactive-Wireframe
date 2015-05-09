@@ -12,12 +12,20 @@ Trippy visuals are to be had with the help of sine functions, Dat.GUI, and Three
 
 ## Formulas
 ####Sphere formula:
-* _sin(frequency &lowast; x &lowast; vertex_index) &lowast; amplitude + center_.
-* It loops through each vertex, so the vertex index is what gives it the flowing/chaotic motion. Otherwise it just pulses. How lame.
+_sin(frequency &lowast; x &lowast; vertex_index) &lowast; amplitude + center_.
+* It changes each vertex one-by-one, ordered by one of the specified axes.
+ * It's the vertex_index variable that gives it the flowing/chaotic motion. Otherwise it simply pulses.
+* Things to try:
+ * Crank up the amplitudes in whichever direction. Same high frequency, offset the phase by 120° (0, 120, 240 for example). Add some rotation. Speed up the background and play some rave music.
+ * Max amplitude. 240 frequency each. 120, 60, 90 phase respectively. Try every vertex order. Add a tinge of rotation. It looks acidic.
 
 ####Background formula:
-* _sin(frequency &lowast; x + phase) * amplitude + center_
-* This creates a smooth oscillation for the background.
+ _sin(frequency &lowast; x + phase) * amplitude + center_
+* The background's made up of three colors: Red, Blue, and Green
+* Each color has its own sine wave. This produces interesting results:
+  * Give each the same frequency. Offset their phases by 120°. It'll loop through the rainbow.
+  * Same frequency and same phase will have the sine waves line up to produce a greyscale.
+  * What other patterns can you find? ***FIND OUT NEXT TIME ON WIREFRAME-BALL Z!!!!***
 
 ## Sliders
 
@@ -65,7 +73,3 @@ Trippy visuals are to be had with the help of sine functions, Dat.GUI, and Three
 ## Credits
 
 Couldn't have done this without my cat [Sekai](https://instagram.com/p/zqJ4ADRTvm/), the robust documentation of [Three.JS](http://threejs.org/docs/), and the simplicity of [Dat.GUI](http://workshop.chromeexperiments.com/examples/gui/).
-
-## License
-
-Check the LICENSE file

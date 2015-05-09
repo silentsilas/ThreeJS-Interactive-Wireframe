@@ -34,12 +34,12 @@
 
 			// Variables that affect the sphere animation
 			var SphereParams = new function() {
-				this.x_frequency = 0.5;
-				this.y_frequency = 0.5;
-				this.z_frequency = 0.5;
-				this.x_phase = 0.1;
-				this.y_phase = 0.1;
-				this.z_phase = 0.1;
+				this.x_frequency = 90;
+				this.y_frequency = 60;
+				this.z_frequency = 30;
+				this.x_phase = 0;
+				this.y_phase = 120;
+				this.z_phase = 240; // 0.1
 				this.x_amplitude = 0.775;
 				this.y_amplitude = 0.1;
 				this.z_amplitude = 0.1;
@@ -52,12 +52,12 @@
 				this.z_rotation = 0.00002;
 			};
 			var BackgroundParams = new function() {
-				this.r_frequency = 1.666;
-				this.g_frequency = 2.666;
-				this.b_frequency = 3.666;
-				this.r_phase = 0.01;
-				this.g_phase = 2*Math.PI/3;
-				this.b_phase = 4*Math.PI/3;
+				this.r_frequency = 120;
+				this.g_frequency = 120;
+				this.b_frequency = 120;
+				this.r_phase = 0;
+				this.g_phase = 120; // 2*Math.PI/3
+				this.b_phase = 240; // 4*Math.PI/3
 			    this.r_amplitude = 127;
 			    this.g_amplitude = 127;
 			    this.b_amplitude = 127;
@@ -72,12 +72,12 @@
 			var gui = new dat.GUI();
 			var sphereFolder = gui.addFolder('Sphere');
 			// Frequency & Phase repeat after 2π radians (aka 360°)
-			sphereFolder.add(SphereParams, 'x_frequency', 0, 6.28318530718);
-			sphereFolder.add(SphereParams, 'y_frequency', 0, 6.28318530718);
-			sphereFolder.add(SphereParams, 'z_frequency', 0, 6.28318530718);
-			sphereFolder.add(SphereParams, 'x_phase', 0, 6.28318530718);
-			sphereFolder.add(SphereParams, 'y_phase', 0, 6.28318530718);
-			sphereFolder.add(SphereParams, 'z_phase', 0, 6.28318530718);
+			sphereFolder.add(SphereParams, 'x_frequency', 0, 360);
+			sphereFolder.add(SphereParams, 'y_frequency', 0, 360);
+			sphereFolder.add(SphereParams, 'z_frequency', 0, 360);
+			sphereFolder.add(SphereParams, 'x_phase', 0, 360);
+			sphereFolder.add(SphereParams, 'y_phase', 0, 360);
+			sphereFolder.add(SphereParams, 'z_phase', 0, 360); //6.28318530718
 			sphereFolder.add(SphereParams, 'x_amplitude', -5, 5);
 			sphereFolder.add(SphereParams, 'y_amplitude', -5, 5);
 			sphereFolder.add(SphereParams, 'z_amplitude', -5, 5);
@@ -90,12 +90,12 @@
 			sphereFolder.add(SphereParams, 'z_rotation', -.5, .5);
 
 			var backgroundFolder = gui.addFolder('Background');
-			backgroundFolder.add(BackgroundParams, 'r_frequency', 0, 6.28318530718);
-			backgroundFolder.add(BackgroundParams, 'g_frequency', 0, 6.28318530718);
-			backgroundFolder.add(BackgroundParams, 'b_frequency', 0, 6.28318530718);
-			backgroundFolder.add(BackgroundParams, 'r_phase', 0, 6.28318530718);
-			backgroundFolder.add(BackgroundParams, 'g_phase', 0, 6.28318530718);
-			backgroundFolder.add(BackgroundParams, 'b_phase', 0, 6.28318530718);
+			backgroundFolder.add(BackgroundParams, 'r_frequency', 0, 360);
+			backgroundFolder.add(BackgroundParams, 'g_frequency', 0, 360);
+			backgroundFolder.add(BackgroundParams, 'b_frequency', 0, 360);
+			backgroundFolder.add(BackgroundParams, 'r_phase', 0, 360);
+			backgroundFolder.add(BackgroundParams, 'g_phase', 0, 360);
+			backgroundFolder.add(BackgroundParams, 'b_phase', 0, 360);
 
 			// TODO: Surely there must be a way to modularize these controllers? Perhaps also the folders.
 			var r_amp_controller = backgroundFolder.add(BackgroundParams, 'r_amplitude', 0, 127);
@@ -308,6 +308,14 @@
 						MiscParams.box_xrotate_speed = getRandom(0.1,-0.1);
 				}
 			}
+
+			/* radians = degrees * (pi/180)
+			 * degrees = radians * (180/pi)
+			 */
+			 function getRadians(degrees) {
+			 	return degrees * (Math.PI/180);
+			 }
+
 			/*
 			 * Determines whether the current background color is bright/dark.
 			 * A bright color turns the sphere wireframe black. Dark turns it white.
@@ -392,9 +400,9 @@
 			 * Main loop to handle animation
 			 */
 			function animate() {
-				r = Math.sin( BackgroundParams.r_frequency*(-count) + BackgroundParams.r_phase ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
-				g = Math.sin( BackgroundParams.g_frequency*(-count) + BackgroundParams.g_phase ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
-				b = Math.sin( BackgroundParams.b_frequency*(-count) + BackgroundParams.b_phase ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
+				r = Math.sin( getRadians(BackgroundParams.r_frequency)*(-count) + getRadians(BackgroundParams.r_phase) ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
+				g = Math.sin( getRadians(BackgroundParams.g_frequency)*(-count) + getRadians(BackgroundParams.g_phase) ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
+				b = Math.sin( getRadians(BackgroundParams.b_frequency)*(-count) + getRadians(BackgroundParams.b_phase) ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
 				var background_hex = RGB2Color(r,g,b);
 
 				document.body.style.backgroundColor=background_hex;
@@ -424,9 +432,9 @@
 							var origin = sphere_geometry._origVertices[z_positions[j][1]];
 							var newPosition = sphere_geometry.vertices[z_positions[j][1]];
 						}
-						newPosition.y = origin.y+ (Math.sin( ( j+count  ) * SphereParams.x_frequency + SphereParams.x_phase ) * SphereParams.y_amplitude + SphereParams.x_center );
-						newPosition.x = origin.x+ (Math.sin( ( j+count  ) * SphereParams.y_frequency + SphereParams.y_phase ) * SphereParams.x_amplitude + SphereParams.y_center );
-						newPosition.z = origin.z+ (Math.sin( ( j+count  ) * SphereParams.z_frequency + SphereParams.z_phase ) * SphereParams.z_amplitude + SphereParams.z_center );
+						newPosition.y = origin.y+ (Math.sin( ( j+count  ) * getRadians(SphereParams.x_frequency) + getRadians(SphereParams.x_phase) ) * SphereParams.y_amplitude + SphereParams.x_center );
+						newPosition.x = origin.x+ (Math.sin( ( j+count  ) * getRadians(SphereParams.y_frequency) + getRadians(SphereParams.y_phase) ) * SphereParams.x_amplitude + SphereParams.y_center );
+						newPosition.z = origin.z+ (Math.sin( ( j+count  ) * getRadians(SphereParams.z_frequency) + getRadians(SphereParams.z_phase) ) * SphereParams.z_amplitude + SphereParams.z_center );
 					}
 					// Set the dirtyVertices flag so that the vertices will be updated in the renderer
 					sphere_geometry.verticesNeedUpdate = true;
