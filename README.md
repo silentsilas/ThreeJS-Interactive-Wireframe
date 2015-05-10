@@ -12,12 +12,12 @@ Trippy visuals are to be had with the help of sine functions, Dat.GUI, and Three
 
 ## Formulas
 ####Sphere formula:
-_sin(frequency &lowast; x &lowast; vertex_index) &lowast; amplitude + center_.
+_sin( ( vertex_index + x ) &lowast; frequency + phase  ) &lowast; amplitude + center_.
 * It changes each vertex one-by-one, ordered by one of the specified axes.
  * It's the vertex_index variable that gives it the flowing/chaotic motion.
 
 ####Background formula:
- _sin(frequency &lowast; x + phase) * amplitude + center_
+ _sin(x &lowast; frequency + phase) * amplitude + center_
 * The background's made up of three colors: Red, Blue, and Green
 * Each color has its own sine wave. This produces interesting results:
   * Give each the same frequency. Offset their phases by 120°. It'll loop through the rainbow.
