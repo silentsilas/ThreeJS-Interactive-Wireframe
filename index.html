@@ -18,7 +18,8 @@
 		<div style="position:absolute; top: 0px;">
 			<div id="formula"></div>
 			<button id="toggleButton">Toggle</button>
-
+			<button id="bumpyButton">Bumpy Sphere</button>
+			<button id="normalButton">Normal Sphere</button>
 		</div>
 		<div id="canvas-container"></div>
 		<script>
@@ -33,6 +34,7 @@
 			var hidden = false;
 
 			var box;
+			var normalSphere;
 			var octahedron;
 			var r = 255, g = 255, b = 255;
 
@@ -46,16 +48,17 @@
 				this.x_phase = 0;
 				this.y_phase = 120;
 				this.z_phase = 240; // 0.1
-				this.x_amplitude = 0.775;
-				this.y_amplitude = 0.1;
-				this.z_amplitude = 0.1;
-				this.x_center = 0.1;
-				this.y_center = 0.1;
-				this.z_center = 0.1;
+				this.x_amplitude = 5;
+				this.y_amplitude = 5;
+				this.z_amplitude = 5;
+				this.x_center = 0;
+				this.y_center = 0;
+				this.z_center = 0;
 				this.which_order = "y";
-				this.x_rotation = 0.0003;
-				this.y_rotation = 0.00002;
-				this.z_rotation = 0.00002;
+				this.x_rotation = 0.5;
+				this.y_rotation = 0.5;
+				this.z_rotation = 0.25;
+				this.normal_segments = 75;
 			};
 			var BackgroundParams = new function() {
 				this.r_frequency = 120;
@@ -168,16 +171,25 @@
 
 			var miscFolder = gui.addFolder('Miscellaneous');
 			miscFolder.add(MiscParams, 'count_increment',0,1.5);
-			miscFolder.add(MiscParams, 'box_xrotate_speed', -1, 1);
+			var vertices_controller = miscFolder.add(SphereParams, "normal_segments", 1, 150);
+			vertices_controller.onFinishChange(function(value) {
+				createNormalSphere(value);
+				scene.add(normalSphere);
+				objects.push(normalSphere);
+			});
 			sphereFolder.open();
 
 			// global properties of the sphere we can manipulate
 			var sphere_geometry;
 			var sphere_object;
-			var x_positions = [];
-			var y_positions = [];
-			var z_positions = [];
+			var bumpy_x_positions = [];
+			var bumpy_y_positions = [];
+			var bumpy_z_positions = [];
 
+			var normalGeometry;
+			var normal_x_positions = [];
+			var normal_y_positions = [];
+			var normal_z_positions = [];
 
 			init();
 			animate();
@@ -212,9 +224,9 @@
 				for(var i = 0; i < nVertices; i++){
 					origVertices[i]	= sphere_geometry.vertices[i].clone();
 					// Do a sorted add with the x-position of each vertex, along with their original index.
-					binaryInsert([sphere_geometry.vertices[i].x,i],x_positions);
-					binaryInsert([sphere_geometry.vertices[i].y,i],y_positions);
-					binaryInsert([sphere_geometry.vertices[i].z,i],z_positions);
+					binaryInsert([sphere_geometry.vertices[i].x,i],bumpy_x_positions);
+					binaryInsert([sphere_geometry.vertices[i].y,i],bumpy_y_positions);
+					binaryInsert([sphere_geometry.vertices[i].z,i],bumpy_z_positions);
 				}
 				sphere_geometry._origVertices = origVertices.slice(0);
 				scene.add(obj);
@@ -224,8 +236,8 @@
 
 //				document.getElementById ("btnsave").addEventListener ("click", resetEmotes, false);
 				// Set up the camera to be inside the sphere, close to the edge
-				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, .1, 25000 );
-				camera.position.x = -1000;
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, .1, 20000 );
+				camera.position.x = -5000;
 				camera.position.y = 0;
 
 				// Set up the scene & light
@@ -243,19 +255,26 @@
 				var loader = new THREE.ObjectLoader();
 				loader.load("models/sphere.json", sphereCallback);
 
-				var geometry = new THREE.BoxGeometry( 175, 175, 175 );
-				box = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, wireframe: true } ));
-				box.position.x = 1300;
-				box.position.z = -200;
-				box.name = "box";
-				scene.add(box);
-				objects.push(box);
+				createNormalSphere(75,'0xffffff');
+				normalSphere.visible = false;
+				//scene.add(normalSphere);
+				//objects.push(normalSphere);
 
-				octahedron = new THREE.Mesh (new THREE.OctahedronGeometry(100,0), new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, wireframe: true } ));
-				octahedron.position.x = 1250;
-				octahedron.position.z = 200;
-				scene.add(octahedron);
-				objects.push(octahedron);
+				// var geometry = new THREE.BoxGeometry( 175, 175, 175 );
+				// box = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, wireframe: true } ));
+				// box.position.x = 1300;
+				// box.position.z = -200;
+				// box.name = "box";
+				// box.visible = false;
+				//scene.add(box);
+				//objects.push(box);
+
+				// octahedron = new THREE.Mesh (new THREE.OctahedronGeometry(100,0), new THREE.MeshBasicMaterial( { color: Math.random() * 0xffffff, wireframe: true } ));
+				// octahedron.position.x = 1250;
+				// octahedron.position.z = 200;
+				// octahedron.visible = false;
+				//scene.add(octahedron);
+				//objects.push(octahedron);
 
 				// Set up the renderer, append it to the #canvas-container
 				renderer = new THREE.WebGLRenderer( { alpha: true } );
@@ -274,6 +293,61 @@
 				container.appendChild( renderer.domElement );
 				window.addEventListener( 'resize', onWindowResize, false );
 				document.getElementById("toggleButton").addEventListener("click", toggleMe, false);
+				document.getElementById("bumpyButton").addEventListener("click", showBumpy, false);
+				document.getElementById("normalButton").addEventListener("click", showNormal, false);
+			}
+			function createNormalSphere(segments, color) {
+				color = color || '0xffffff';
+				if (scene.getObjectByName('normal-sphere') != null) {
+					scene.remove(scene.getObjectByName('normal-sphere'));
+
+					removeClickable('normal-sphere');
+					//objects.remove(scene.getObjectByName('normal-sphere'));
+					normal_x_positions.length = 0;
+					normal_y_positions.length = 0;
+					normal_z_positions.length = 0;
+				}
+				normalGeometry = new THREE.SphereGeometry(1500, segments, segments);
+				normalSphere = new THREE.Mesh ( normalGeometry, new THREE.MeshBasicMaterial({ wireframe: true } ));
+				normalSphere.color = color;
+				normalSphere.name = "normal-sphere";
+				var nVertices = normalGeometry.vertices.length;
+				var origVertices= new Array(nVertices);
+				for(var i = 0; i < nVertices; i++){
+					origVertices[i]	= normalGeometry.vertices[i].clone();
+					// Do a sorted add with the x-position of each vertex, along with their original index.
+					binaryInsert([normalGeometry.vertices[i].x,i],normal_x_positions);
+					binaryInsert([normalGeometry.vertices[i].y,i],normal_y_positions);
+					binaryInsert([normalGeometry.vertices[i].z,i],normal_z_positions);
+				}
+				normalGeometry._origVertices = origVertices.slice(0);
+			}
+			function removeClickable(name) {
+				for (var n = 0 ; n < objects.length ; n++) {
+					if (objects[n].name == name) {
+						var removedObject = objects.splice(n,1);
+						removedObject = null;
+						break;
+					}
+				}
+			}
+			function showBumpy() {
+				sphere_object.visible = true;
+				scene.add(sphere_object);
+				objects.push(sphere_object);
+
+				normalSphere.visible = false;
+				scene.remove(scene.getObjectByName('normal-sphere'));
+				removeClickable('normal-sphere');
+			}
+			function showNormal() {
+				normalSphere.visible = true;
+				scene.add(normalSphere);
+				objects.push(normalSphere);
+
+				sphere_object.visible = false;
+				scene.remove(scene.getObjectByName('animated-sphere'));
+				removeClickable('animated-sphere');
 			}
 			function onDocumentMouseWheel( event ) {
 				var evt=window.event || e;
@@ -295,10 +369,7 @@
 				raycaster.setFromCamera( mouse, camera );
 				var intersects = raycaster.intersectObjects( objects );
 				if ( intersects.length > 0 ) {
-					if ( intersects[ 0 ].object.name != "animated-sphere")
-						container.style.cursor = "pointer";
-					else
-						container.style.cursor = "auto";
+					container.style.cursor = "pointer";
 				} else {
 					container.style.cursor = "auto";
 				}
@@ -311,12 +382,8 @@
 				raycaster.setFromCamera( mouse, camera );
 				var intersects = raycaster.intersectObjects( objects );
 				if ( intersects.length > 0 ) {
-					if (intersects[ 0 ].object.name != "animated-sphere") {
-						intersects[ 0 ].object.material.wireframe = !intersects[ 0 ].object.material.wireframe;
-						intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
-					}
-					if (intersects[ 0 ].object.name == "box")
-						MiscParams.box_xrotate_speed = getRandom(0.1,-0.1);
+					intersects[ 0 ].object.material.wireframe = !intersects[ 0 ].object.material.wireframe;
+					intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
 				}
 			}
 
@@ -414,33 +481,67 @@
 				var formula_div = document.getElementById('formula');
 				var formulas = "Sphere Vertex #1:<br>";
 
+				if (normalSphere != null && normalSphere.visible == true) {
+					// setting dynamic to true lets you change the position of vertices
+					normalSphere.dynamic = true;
+					normalSphere.rotation.x += SphereParams.x_rotation/100;
+					normalSphere.rotation.y += SphereParams.y_rotation/100;
+					normalSphere.rotation.z += SphereParams.z_rotation/100;
+
+					// Change sphere color to black on light backgrounds, white on dark backgrounds
+					//normalSphere.material.color.setHex( getContrastYIQ(rgbToHex(r, g, b)) );
+
+					// Go through each vertex and change its x/y/z coordinate
+					for (var j = 0; j < normalGeometry.vertices.length; j++) {
+						// Decide which axis it should go through in numeric order
+						if (SphereParams.which_order == "x") {
+							var origin = normalGeometry._origVertices[normal_x_positions[j][1]];
+							var newPosition = normalGeometry.vertices[normal_x_positions[j][1]];
+						} else if (SphereParams.which_order == "y") {
+							var origin = normalGeometry._origVertices[normal_y_positions[j][1]];
+							var newPosition = normalGeometry.vertices[normal_y_positions[j][1]];
+						} else if (SphereParams.which_order == "z") {
+							var origin = normalGeometry._origVertices[normal_z_positions[j][1]];
+							var newPosition = normalGeometry.vertices[normal_z_positions[j][1]];
+						}
+						newPosition.x = origin.x+ (Math.sin( ( j+count ) * getRadians(SphereParams.x_frequency) + getRadians(SphereParams.x_phase) ) * SphereParams.x_amplitude + SphereParams.x_center );
+						newPosition.y = origin.y+ (Math.sin( ( j+count ) * getRadians(SphereParams.y_frequency) + getRadians(SphereParams.y_phase) ) * SphereParams.y_amplitude + SphereParams.y_center );
+						newPosition.z = origin.z+ (Math.sin( ( j+count ) * getRadians(SphereParams.z_frequency) + getRadians(SphereParams.z_phase) ) * SphereParams.z_amplitude + SphereParams.z_center );
+						if (j == 0) {
+							formulas += "X: "+newPosition.x.toFixed(4)+" = "+origin.x.toFixed(4)+" + ( sin( ( "+j+"+"+count.toFixed(4)+" ) * "+ getRadians(SphereParams.x_frequency).toFixed(4) +" ) + " + getRadians(SphereParams.x_phase).toFixed(4) + " ) * " +SphereParams.x_amplitude.toFixed(4)+" + " + SphereParams.x_center.toFixed(4) + " )<br>";
+							formulas += "Y: "+newPosition.y.toFixed(4)+" = "+origin.y.toFixed(4)+" + ( sin( ( "+j+"+"+count.toFixed(4)+" ) * "+ getRadians(SphereParams.y_frequency).toFixed(4) +" ) + " + getRadians(SphereParams.y_phase).toFixed(4) + " ) * " +SphereParams.y_amplitude.toFixed(4)+" + " + SphereParams.y_center.toFixed(4) + " )<br>";
+							formulas += "Z: "+newPosition.z.toFixed(4)+" = "+origin.z.toFixed(4)+" + ( sin( ( "+j+"+"+count.toFixed(4)+" ) * "+ getRadians(SphereParams.z_frequency).toFixed(4) +" ) + " + getRadians(SphereParams.z_phase).toFixed(4) + " ) * " +SphereParams.z_amplitude.toFixed(4)+" + " + SphereParams.z_center.toFixed(4) + " )<br>";
+						}
+					}
+					// Set the dirtyVertices flag so that the vertices will be updated in the renderer
+					normalGeometry.verticesNeedUpdate = true;
+					normalGeometry.__dirtyVertices = true;
+				}
 
 				// Make sure the sphere has loaded
-				if (sphere_geometry != null) {
+				if (sphere_geometry != null && sphere_object.visible == true) {
 					// setting dynamic to true lets you change the position of vertices
 					sphere_geometry.dynamic = true;
-
 					sphere_object.rotation.x += SphereParams.x_rotation/100;
 					sphere_object.rotation.y += SphereParams.y_rotation/100;
 					sphere_object.rotation.z += SphereParams.z_rotation/100;
 
-					sphere_object.material.color.setHex( getContrastYIQ(rgbToHex(r, g, b)) );
+					// Change sphere color to black on light backgrounds, white on dark backgrounds
+					//sphere_object.material.color.setHex( getContrastYIQ(rgbToHex(r, g, b)) );
 
 					// Go through each vertex and change its x/y/z coordinate
 					for (var j = 0; j < sphere_geometry.vertices.length; j++) {
-
 						// Decide which axis it should go through in numeric order
 						if (SphereParams.which_order == "x") {
-							var origin = sphere_geometry._origVertices[x_positions[j][1]];
-							var newPosition = sphere_geometry.vertices[x_positions[j][1]];
+							var origin = sphere_geometry._origVertices[bumpy_x_positions[j][1]];
+							var newPosition = sphere_geometry.vertices[bumpy_x_positions[j][1]];
 						} else if (SphereParams.which_order == "y") {
-							var origin = sphere_geometry._origVertices[y_positions[j][1]];
-							var newPosition = sphere_geometry.vertices[y_positions[j][1]];
+							var origin = sphere_geometry._origVertices[bumpy_y_positions[j][1]];
+							var newPosition = sphere_geometry.vertices[bumpy_y_positions[j][1]];
 						} else if (SphereParams.which_order == "z") {
-							var origin = sphere_geometry._origVertices[z_positions[j][1]];
-							var newPosition = sphere_geometry.vertices[z_positions[j][1]];
+							var origin = sphere_geometry._origVertices[bumpy_z_positions[j][1]];
+							var newPosition = sphere_geometry.vertices[bumpy_z_positions[j][1]];
 						}
-
 						newPosition.x = origin.x+ (Math.sin( ( j+count ) * getRadians(SphereParams.x_frequency) + getRadians(SphereParams.x_phase) ) * SphereParams.x_amplitude + SphereParams.x_center );
 						newPosition.y = origin.y+ (Math.sin( ( j+count ) * getRadians(SphereParams.y_frequency) + getRadians(SphereParams.y_phase) ) * SphereParams.y_amplitude + SphereParams.y_center );
 						newPosition.z = origin.z+ (Math.sin( ( j+count ) * getRadians(SphereParams.z_frequency) + getRadians(SphereParams.z_phase) ) * SphereParams.z_amplitude + SphereParams.z_center );
@@ -455,30 +556,51 @@
 					sphere_geometry.__dirtyVertices = true;
 				}
 
-				r = Math.sin( getRadians(BackgroundParams.r_frequency)*(-count) + getRadians(BackgroundParams.r_phase) ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
-				g = Math.sin( getRadians(BackgroundParams.g_frequency)*(-count) + getRadians(BackgroundParams.g_phase) ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
-				b = Math.sin( getRadians(BackgroundParams.b_frequency)*(-count) + getRadians(BackgroundParams.b_phase) ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
-				var background_hex = RGB2Color(r,g,b);
-				formulas += "<br>Background: "+background_hex;
-				formulas += "<br>R: "+r.toFixed(4)+" = sin(" +getRadians(BackgroundParams.r_frequency).toFixed(4)+" x "+(-count).toFixed(4) + " + " + getRadians(BackgroundParams.r_phase).toFixed(4)+" ) x " +BackgroundParams.r_amplitude.toFixed(4) +" + "+ BackgroundParams.r_center.toFixed(4);
-				formulas += "<br>G: "+g.toFixed(4)+" = sin(" +getRadians(BackgroundParams.g_frequency).toFixed(4)+" x "+(-count).toFixed(4) + " + " + getRadians(BackgroundParams.g_phase).toFixed(4)+" ) x " +BackgroundParams.g_amplitude.toFixed(4) +" + "+ BackgroundParams.g_center.toFixed(4);
-				formulas += "<br>B: "+b.toFixed(4)+" = sin(" +getRadians(BackgroundParams.b_frequency).toFixed(4)+" x "+(-count).toFixed(4) + " + " + getRadians(BackgroundParams.b_phase).toFixed(4)+" ) x " +BackgroundParams.b_amplitude.toFixed(4) +" + "+ BackgroundParams.b_center.toFixed(4);
+				r_left = Math.sin( getRadians(BackgroundParams.r_frequency)*count + getRadians(BackgroundParams.r_phase) ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
+				g_left = Math.sin( getRadians(BackgroundParams.g_frequency)*count + getRadians(BackgroundParams.g_phase) ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
+				b_left = Math.sin( getRadians(BackgroundParams.b_frequency)*count + getRadians(BackgroundParams.b_phase) ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
+				r_right = Math.sin( getRadians(BackgroundParams.r_frequency)*( count+1 ) + getRadians(BackgroundParams.r_phase) ) * BackgroundParams.r_amplitude + BackgroundParams.r_center;
+				g_right = Math.sin( getRadians(BackgroundParams.g_frequency)*( count+1 ) + getRadians(BackgroundParams.g_phase) ) * BackgroundParams.g_amplitude + BackgroundParams.g_center;
+				b_right = Math.sin( getRadians(BackgroundParams.b_frequency)*( count+1 ) + getRadians(BackgroundParams.b_phase) ) * BackgroundParams.b_amplitude + BackgroundParams.b_center;
 
-				document.body.style.backgroundColor=background_hex;
+				var background_left = RGB2Color(r_left,g_left,b_left);
+				var background_right = RGB2Color(r_right,g_right,b_right);
+
 				if (hidden)
 					formula_div.innerHTML = '';
-				else
+				else {
+					formulas += "<br>Background_left:";
+					formulas += "<br>r_left: "+pad(~~r_left, 3)+" = sin(" +getRadians(BackgroundParams.r_frequency).toFixed(4)+" x "+count.toFixed(4) + " + " + getRadians(BackgroundParams.r_phase).toFixed(4)+" ) x " +BackgroundParams.r_amplitude.toFixed(4) +" + "+ BackgroundParams.r_center.toFixed(4);
+					formulas += "<br>g_left: "+pad(~~g_left, 3)+" = sin(" +getRadians(BackgroundParams.g_frequency).toFixed(4)+" x "+count.toFixed(4) + " + " + getRadians(BackgroundParams.g_phase).toFixed(4)+" ) x " +BackgroundParams.g_amplitude.toFixed(4) +" + "+ BackgroundParams.g_center.toFixed(4);
+					formulas += "<br>b_left: "+pad(~~b_left, 3)+" = sin(" +getRadians(BackgroundParams.b_frequency).toFixed(4)+" x "+count.toFixed(4) + " + " + getRadians(BackgroundParams.b_phase).toFixed(4)+" ) x " +BackgroundParams.b_amplitude.toFixed(4) +" + "+ BackgroundParams.b_center.toFixed(4);
+
+					formulas += "<br><br>Background_right:";
+					formulas += "<br>r_left: "+pad(~~r_right, 3)+" = sin(" +getRadians(BackgroundParams.r_frequency).toFixed(4)+" x "+(count+(MiscParams.count_increment*60)).toFixed(4) + " + " + getRadians(BackgroundParams.r_phase).toFixed(4)+" ) x " +BackgroundParams.r_amplitude.toFixed(4) +" + "+ BackgroundParams.r_center.toFixed(4);
+					formulas += "<br>g_left: "+pad(~~g_right, 3)+" = sin(" +getRadians(BackgroundParams.g_frequency).toFixed(4)+" x "+(count+1).toFixed(4) + " + " + getRadians(BackgroundParams.g_phase).toFixed(4)+" ) x " +BackgroundParams.g_amplitude.toFixed(4) +" + "+ BackgroundParams.g_center.toFixed(4);
+					formulas += "<br>b_left: "+pad(~~b_right, 3)+" = sin(" +getRadians(BackgroundParams.b_frequency).toFixed(4)+" x "+(count+1).toFixed(4) + " + " + getRadians(BackgroundParams.b_phase).toFixed(4)+" ) x " +BackgroundParams.b_amplitude.toFixed(4) +" + "+ BackgroundParams.b_center.toFixed(4);
 					formula_div.innerHTML =formulas;
-				box.rotation.x += MiscParams.box_xrotate_speed;
-				box.rotation.z += Math.sin( (2.4*count) / 10 ) * 0.002;
-				box.rotation.y += Math.sin( (1.4*count) / 5 ) * 0.008;
-				octahedron.rotation.x += 0.01;
+				}
+
+
+   				document.body.style.background = "-webkit-gradient(linear, left top, right top, from("+background_left+"), to("+background_right+"))";
+			    document.body.style.background = "-moz-linear-gradient(left, "+background_left+" 0%, "+background_right+" 100%)";
+
+				//document.body.style.backgroundColor=background_hex;
+
+				// box.rotation.x += MiscParams.box_xrotate_speed;
+				// box.rotation.z += Math.sin( (2.4*count) / 10 ) * 0.002;
+				// box.rotation.y += Math.sin( (1.4*count) / 5 ) * 0.008;
+				// octahedron.rotation.x += 0.01;
 
 				// Render and repeat.
 				render();
 				requestAnimationFrame( animate );
 			}
-
+			function pad(n, width, z) {
+				z = z || '0';
+				n = n + '';
+				return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+			}
 			function render() {
 				renderer.render( scene, camera );
 				count += MiscParams.count_increment;
