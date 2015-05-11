@@ -58,7 +58,7 @@
 				this.x_rotation = 0.5;
 				this.y_rotation = 0.5;
 				this.z_rotation = 0.25;
-				this.normal_segments = 75;
+				this.normal_segments = 50;
 			};
 			var BackgroundParams = new function() {
 				this.r_frequency = 120;
@@ -257,7 +257,7 @@
 				var loader = new THREE.ObjectLoader();
 				loader.load("models/sphere.json", sphereCallback);
 
-				createNormalSphere(75,'0xffffff');
+				createNormalSphere(50,'0xffffff');
 				//normalSphere.visible = false;
 				scene.add(normalSphere);
 				objects.push(normalSphere);
